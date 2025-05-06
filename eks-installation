@@ -1,0 +1,96 @@
+# EKS installation===
+1) launch instance amz linux - as workspace or proxy  server, and follow bellow steps to setup eks.
+aws configure
+    2  aws configure
+    3  sudo setenforce 0
+    4  sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+     cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.32/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v1.32/rpm/repodata/repomd.xml.key
+exclude=kubelet kubeadm kubectl cri-tools kubernetes-cni
+EOF
+
+   14  yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+   15  systemctl enable --now kubelet
+   
+16  vi script.sh
+
+ARCH=amd64
+PLATFORM=$(uname -s)_$ARCH
+
+curl -sLO "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_$PLATFORM.tar.gz"
+
+# (Optional) Verify checksum
+curl -sL "https://github.com/eksctl-io/eksctl/releases/latest/download/eksctl_checksums.txt" | grep $PLATFORM | sha256sum --check
+
+tar -xzf eksctl_$PLATFORM.tar.gz -C /tmp && rm eksctl_$PLATFORM.tar.gz
+
+sudo mv /tmp/eksctl /usr/local/bin
+
+   17  ll
+   18  chmod 777 script.sh 
+   19  ./script.sh 
+   20  eksctl
+   27  eksctl create --help
+   28  eksctl create cluster --help
+   46  eksctl create cluster --name=eksclicluster01 --region=ap-south-1 --zones=ap-south-1a,ap-south-1b,ap-south-1c --without-nodegroup 
+   47  eksctl get cluster
+   48  eksctl utils associate-iam-oidc-provider --region ap-south-1 --cluster eksclicluster01 --approve
+   49  eksctl create nodegroup --help
+   50  eksctl create nodegroup --cluster=eksclicluster01 --region=ap-south-1 --name=eksdemo-ng-pub-usa-proj --node-type=t3.medium --nodes=2 --nodes-min=2 --nodes-max=4 --node-volume-size=20 --ssh-access --ssh-public-key=mykey-mum --managed --asg-access --external-dns-access --full-ecr-access --appmesh-access --alb-ingress-access
+   51  eksctl get cluster
+   52  kubectl get nodes
+   53  kubectl config view --minify
+   54  eksctl get nodegroup --cluster=ekscluster
+   55  eksctl get nodegroup --cluster=eksclicluster01
+   
+   57  kubectl get pod
+   58  kubectl get ns
+   59  kubectl get pod -n kube-system
+   
+##Trigger workoas As Deployment
+   61  vim deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+
+   62  kubectl create -f deploy.yaml 
+
+'
+   64  kubectl get pods
+   65  kubectl get deploy
+   66  kubectl get pod
+   67  kubectl edit deploy nginx-deployment
+   69  kubectl get pod
+   71  eksctl get nodegroup --cluster=eksclicluster01
+   72  watch eksctl get nodegroup --cluster=eksclicluster01
+   73  kubectl get pod
+   82  eksctl get cluster 
+   84  eksctl delete cluster eksclicluster01
+   86  eksctl get cluster 
+
+=================================
+lec NO-13: https://github.com/Soprano37/stacksimplify-kubernetes-fundamentals/tree/master/05-Services-with-kubectl
